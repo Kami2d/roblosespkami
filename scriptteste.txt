@@ -1,0 +1,147 @@
+-- Exemplo corrigido do script
+local Lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/7yhx/kwargs_Ui_Library/main/source.lua"))()
+
+local UI = Lib:Create{
+   Theme = "Dark", -- ou qualquer outro tema
+   Size = UDim2.new(0, 555, 0, 400) -- padrão
+}
+
+local Main = UI:Tab{
+   Name = "Início"
+}
+
+local Divider = Main:Divider{
+   Name = "Início"
+}
+
+local QuitDivider = Main:Divider{
+   Name = "Sair"
+}
+
+-- Declaração da variável 'Team' para evitar erros
+local Team = nil -- Defina o valor correto do time
+
+-- Função para criar o ESP
+local function CreateESP(Player)
+   if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+      if Player.TeamColor ~= Team then
+         local Box = Instance.new("BoxHandleAdornment")
+         Box.Size = Player.Character.HumanoidRootPart.Size + Vector3.new(0.1, 0.1, 0.1)
+         Box.Adornee = Player.Character.HumanoidRootPart
+         Box.AlwaysOnTop = true
+         Box.ZIndex = 5
+         Box.Transparency = 0.5
+         Box.Color3 = Color3.new(1, 0, 0)
+         Box.Parent = Player.Character.HumanoidRootPart
+      end
+   end
+end
+
+-- Botão para ativar o ESP
+local ESPButton = Divider:Button{
+   Name = "ESP",
+   Description = "ESP ativado",
+   Callback = function()
+      for _, Player in ipairs(game.Players:GetPlayers()) do
+         if Player ~= game.Players.LocalPlayer then
+            CreateESP(Player)
+         end
+      end
+   end
+}
+
+-- Função para criar o FOV ESP
+local function CreateFOV(Player)
+   if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+      if Player.TeamColor ~= Team then
+         local FOV = Instance.new("SelectionBox")
+         FOV.LineThickness = 0.05
+         FOV.Color3 = Color3.new(1, 0, 0)
+         FOV.Transparency = 0.5
+         FOV.Adornee = Player.Character.HumanoidRootPart
+         FOV.Parent = Player.Character.HumanoidRootPart
+      end
+   end
+end
+
+-- Função para desativar ESP
+local function DisabledESP()
+   for _, Player in ipairs(game.Players:GetPlayers()) do
+      if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+         local Box = Player.Character.HumanoidRootPart:FindFirstChildOfClass("BoxHandleAdornment")
+         if Box then
+            Box:Destroy()
+         end
+      end
+   end
+end
+
+-- Função para desativar FOV ESP
+local function DisabledFOV()
+   for _, Player in ipairs(game.Players:GetPlayers()) do
+      if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+         local FOV = Player.Character.HumanoidRootPart:FindFirstChildOfClass("SelectionBox")
+         if FOV then
+            FOV:Destroy()
+         end
+      end
+   end
+end
+
+-- Botão para ativar o FOV ESP
+local FOVButton = Divider:Button{
+   Name = "FOV ESP",
+   Description = "FOV ESP ativado",
+   Callback = function()
+      for _, Player in ipairs(game.Players:GetPlayers()) do
+         if Player ~= game.Players.LocalPlayer then
+            CreateFOV(Player)
+         end
+      end
+   end
+}
+
+-- Exemplo de como desativar ESP e FOV ESP (caso queira adicionar botões para isso):
+local DisableESPButton = Divider:Button{
+   Name = "Desativar ESP",
+   Description = "Remove o ESP de todos os jogadores",
+   Callback = function()
+      DisabledESP()
+   end
+}
+
+local DisableFOVButton = Divider{
+   Name = "Desativar FOV ESP",
+   Description = "Remove o FOV ESP de todos os jogadores",
+   Callback = function()
+      DisabledFOV()
+   end
+ }
+
+ ESP(LocalPlayer)
+FOV(LocalPLayer)
+
+Players.PlayersAdded:Connect(function(Player)
+   ESP(Player)
+   FOV(Player)
+end)
+
+Players.PlayerrRemoving:Connect(function(Player)
+   if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+      Player.Character.HumanoidRootPart:FindFirstChildOfClass("BoxHandleAdornment"):Destroy()
+      Player.Character.HumanoidRootPart:FindFirstChildOfClass("SelectionBox"):Destroy()
+
+   end
+end)
+
+game:GetService("UserInputService").InputBegan:Connect(function(Input, gameProcessed)
+   if Input.KeyCode == Enum.KeyCode.P then
+      if ESPEnable then
+         DisableESP()
+         DisableFOV()
+         ESPEnabled = false
+      else
+         ESPEnabled = true
+      end
+   end
+end)
