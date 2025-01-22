@@ -21,6 +21,10 @@ local QuitDivider = Main:Divider{
 -- Declaração da variável 'Team' para evitar erros
 local Team = nil -- Defina o valor correto do time
 
+-- Variáveis para controle de ESP e linhas de posição
+local ESPEnabled = false
+local LinesEnabled = false
+
 -- Função para criar o ESP
 local function CreateESP(Player)
    if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
@@ -37,18 +41,17 @@ local function CreateESP(Player)
    end
 end
 
--- Botão para ativar o ESP
-local ESPButton = Divider:Button{
-   Name = "ESP",
-   Description = "ESP ativado",
-   Callback = function()
-      for _, Player in ipairs(game.Players:GetPlayers()) do
-         if Player ~= game.Players.LocalPlayer then
-            CreateESP(Player)
+-- Função para desativar ESP (agora removendo todos os adornos de ESP)
+local function DisabledESP()
+   for _, Player in ipairs(game.Players:GetPlayers()) do
+      if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+         local Box = Player.Character.HumanoidRootPart:FindFirstChildOfClass("BoxHandleAdornment")
+         if Box then
+            Box:Destroy()  -- Remover o adornment do ESP
          end
       end
    end
-}
+end
 
 -- Função para criar o FOV ESP
 local function CreateFOV(Player)
@@ -64,84 +67,120 @@ local function CreateFOV(Player)
    end
 end
 
--- Função para desativar ESP
-local function DisabledESP()
-   for _, Player in ipairs(game.Players:GetPlayers()) do
-      if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-         local Box = Player.Character.HumanoidRootPart:FindFirstChildOfClass("BoxHandleAdornment")
-         if Box then
-            Box:Destroy()
-         end
-      end
-   end
-end
-
 -- Função para desativar FOV ESP
 local function DisabledFOV()
    for _, Player in ipairs(game.Players:GetPlayers()) do
       if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
          local FOV = Player.Character.HumanoidRootPart:FindFirstChildOfClass("SelectionBox")
          if FOV then
-            FOV:Destroy()
+            FOV:Destroy()  -- Remover o FOV
          end
       end
    end
 end
 
--- Botão para ativar o FOV ESP
-local FOVButton = Divider:Button{
-   Name = "FOV ESP",
-   Description = "FOV ESP ativado",
-   Callback = function()
+-- Função para desenhar linhas entre o jogador e um ponto de referência
+local function DrawLines(Player, ReferencePosition)
+   if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+      local line = Instance.new("LineHandleAdornment")
+      line.Parent = game.Workspace
+      line.Adornee = Player.Character.HumanoidRootPart
+      line.Position = ReferencePosition
+      line.Color3 = Color3.new(0, 1, 0)
+      line.Thickness = 0.2
+      line.ZIndex = 5
+      line.AlwaysOnTop = true
+   end
+end
+
+-- Função para limpar todas as linhas desenhadas
+local function ClearLines()
+   for _, object in ipairs(game.Workspace:GetChildren()) do
+      if object:IsA("LineHandleAdornment") then
+         object:Destroy()
+      end
+   end
+end
+
+-- Função para ativar/desativar a exibição de linhas
+local function ToggleLines()
+   LinesEnabled = not LinesEnabled
+   if LinesEnabled then
       for _, Player in ipairs(game.Players:GetPlayers()) do
          if Player ~= game.Players.LocalPlayer then
-            CreateFOV(Player)
+            DrawLines(Player, game.Players.LocalPlayer.Character.HumanoidRootPart.Position)
          end
+      end
+   else
+      ClearLines()
+   end
+end
+
+-- Botão para ativar/desativar as linhas
+local LineButton = Divider:Button{
+   Name = "Linhas de Posição",
+   Description = "Ativa/Desativa as linhas de posição entre os jogadores",
+   Callback = function()
+      ToggleLines()
+   end
+}
+
+-- Botão para ativar/desativar o ESP
+local ESPButton = Divider:Button{
+   Name = "ESP",
+   Description = "Ativa/Desativa o ESP",
+   Callback = function()
+      ESPEnabled = not ESPEnabled
+      if ESPEnabled then
+         for _, Player in ipairs(game.Players:GetPlayers()) do
+            if Player ~= game.Players.LocalPlayer then
+               CreateESP(Player)
+               CreateFOV(Player)
+            end
+         end
+      else
+         DisabledESP()
+         DisabledFOV()
       end
    end
 }
 
--- Exemplo de como desativar ESP e FOV ESP (caso queira adicionar botões para isso):
-local DisableESPButton = Divider:Button{
-   Name = "Desativar ESP",
-   Description = "Remove o ESP de todos os jogadores",
-   Callback = function()
-      DisabledESP()
-   end
-}
-
-local DisableFOVButton = Divider{
-   Name = "Desativar FOV ESP",
-   Description = "Remove o FOV ESP de todos os jogadores",
-   Callback = function()
-      DisabledFOV()
-   end
- }
-
- ESP(LocalPlayer)
-FOV(LocalPLayer)
-
-Players.PlayersAdded:Connect(function(Player)
-   ESP(Player)
-   FOV(Player)
-end)
-
-Players.PlayerrRemoving:Connect(function(Player)
-   if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-      Player.Character.HumanoidRootPart:FindFirstChildOfClass("BoxHandleAdornment"):Destroy()
-      Player.Character.HumanoidRootPart:FindFirstChildOfClass("SelectionBox"):Destroy()
-
-   end
-end)
-
+-- Função para alternar ESP e FOV com a tecla P
 game:GetService("UserInputService").InputBegan:Connect(function(Input, gameProcessed)
    if Input.KeyCode == Enum.KeyCode.P then
-      if ESPEnable then
-         DisableESP()
-         DisableFOV()
+      if ESPEnabled then
+         DisabledESP()
+         DisabledFOV()
          ESPEnabled = false
       else
+         for _, Player in ipairs(game.Players:GetPlayers()) do
+            if Player ~= game.Players.LocalPlayer then
+               CreateESP(Player)
+               CreateFOV(Player)
+            end
+         end
          ESPEnabled = true
+      end
+   end
+end)
+
+-- Conectando eventos PlayerAdded e PlayerRemoving
+game.Players.PlayerAdded:Connect(function(Player)
+   CreateESP(Player)
+   CreateFOV(Player)
+end)
+
+game.Players.PlayerRemoving:Connect(function(Player)
+   if Player.Character then
+      if Player.Character:FindFirstChild("HumanoidRootPart") then
+         local Box = Player.Character.HumanoidRootPart:FindFirstChildOfClass("BoxHandleAdornment")
+         if Box then
+            Box:Destroy()
+         end
+         local FOV = Player.Character.HumanoidRootPart:FindFirstChildOfClass("SelectionBox")
+         if FOV then
+            FOV:Destroy()
+         end
       end
    end
 end)
